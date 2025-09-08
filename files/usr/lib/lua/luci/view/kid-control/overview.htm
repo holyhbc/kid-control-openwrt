@@ -1,0 +1,179 @@
+<%+header%>
+<div class="cbi-map">
+    <h2 name="content"><%:儿童上网控制 - 概览%></h2>
+    <div class="cbi-map-descr"><%:通过此界面可以控制儿童设备的上网时间。%></div>
+    
+    <fieldset class="cbi-section">
+        <legend><%:服务状态%></legend>
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:服务状态%></label>
+                <div class="cbi-value-field">
+                    <span id="service-status"><em><%:正在检查...%></em></span>
+                    <button id="toggle-service" class="cbi-button cbi-button-action" style="margin-left: 10px; display: none;">
+                        <span id="toggle-text"></span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:时间规则%></label>
+                <div class="cbi-value-field">
+                    <span id="time-rules-count"><em><%:正在检查...%></em></span>
+                </div>
+            </div>
+            
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:当前封禁设备%></label>
+                <div class="cbi-value-field">
+                    <span id="blocked-devices-count"><em><%:正在检查...%></em></span>
+                    <button id="unblock-all" class="cbi-button cbi-button-reset" style="margin-left: 10px; display: none;">
+                        <%:全部解禁%>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+    
+    <fieldset class="cbi-section">
+        <legend><%:网络设备%></legend>
+        <div class="cbi-section-node">
+            <div id="device-list">
+                <em><%:正在加载设备列表...%></em>
+            </div>
+        </div>
+    </fieldset>
+    
+    <div class="cbi-page-actions">
+        <form class="inline" action="<%=url('admin/services/kid-control/apply')%>" method="post">
+            <input type="hidden" name="token" value="<%=token%>" />
+            <input class="cbi-button cbi-button-apply" type="submit" value="<%:保存并应用%>" />
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // 加载服务状态
+    function loadStatus() {
+        fetch('<%=url('admin/services/kid-control/get_status')%>')
+            .then(response => response.json())
+            .then(status => {
+                console.log('Status response:', status);
+                
+                // 更新服务状态显示
+                if (status.service_installed) {
+                    if (status.running) {
+                        document.getElementById('service-status').innerHTML = 
+                            '<span style="color: green;"><%:规则已加载%></span>';
+                        document.getElementById('toggle-text').textContent = '<%:停止%>';
+                    } else {
+                        document.getElementById('service-status').innerHTML = 
+                            '<span style="color: orange;"><%:规则未加载%></span>';
+                        document.getElementById('toggle-text').textContent = '<%:启动%>';
+                    }
+                    document.getElementById('toggle-service').style.display = 'inline';
+                } else {
+                    document.getElementById('service-status').innerHTML = 
+                        '<span style="color: red;"><%:服务未安装%></span>';
+                }
+                
+                // 更新规则计数
+                document.getElementById('time-rules-count').textContent = 
+                    status.time_rules + ' <%:条规则%>';
+                
+                // 更新封禁设备计数
+                if (status.unique_blocked_devices > 0) {
+                    document.getElementById('blocked-devices-count').textContent = 
+                        status.unique_blocked_devices + ' <%:个设备%>';
+                    document.getElementById('unblock-all').style.display = 'inline';
+                } else {
+                    document.getElementById('blocked-devices-count').textContent = 
+                        '<%:无封禁设备%>';
+                    document.getElementById('unblock-all').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Status check failed:', error);
+                document.getElementById('service-status').innerHTML = 
+                    '<span style="color: red;"><%:检查失败%></span>';
+            });
+    }
+    
+    // 切换服务状态
+    document.getElementById('toggle-service').addEventListener('click', function() {
+        const action = document.getElementById('toggle-text').textContent === '<%:启动%>' ? 'start' : 'stop';
+        
+        fetch('<%=url('admin/services/kid-control/toggle_service')%>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=' + action + '&token=<%=token%>'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                setTimeout(loadStatus, 2000); // 2秒后重新加载状态
+            } else {
+                alert('<%:操作失败%>');
+            }
+        })
+        .catch(error => {
+            alert('<%:操作失败%>');
+        });
+    });
+    
+    // 全部解禁
+    document.getElementById('unblock-all').addEventListener('click', function() {
+        fetch('<%=url('admin/services/kid-control/unblock_now')%>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'token=<%=token%>'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('<%:已解禁所有设备%>');
+                setTimeout(loadStatus, 1000); // 1秒后重新加载状态
+            } else {
+                alert('<%:操作失败%>');
+            }
+        })
+        .catch(error => {
+            alert('<%:操作失败%>');
+        });
+    });
+    
+    // 加载设备列表
+    function loadDevices() {
+        fetch('<%=url('admin/services/kid-control/get_devices')%>')
+            .then(response => response.json())
+            .then(devices => {
+                let html = '<ul style="margin:0; padding-left:1.5em;">';
+                if (devices.length === 0) {
+                    html += '<li><em><%:未发现设备%></em></li>';
+                } else {
+                    devices.forEach(device => {
+                        let display = device.ip;
+                        if (device.hostname) display += ' (' + device.hostname + ')';
+                        if (device.mac) display += ' [' + device.mac + ']';
+                        html += '<li>' + display + '</li>';
+                    });
+                }
+                html += '</ul>';
+                document.getElementById('device-list').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('device-list').innerHTML = '<em><%:加载失败%></em>';
+            });
+    }
+    
+    // 页面加载时初始化
+    window.addEventListener('load', function() {
+        loadStatus();
+        loadDevices();
+    });
+</script>
+<%+footer%>
