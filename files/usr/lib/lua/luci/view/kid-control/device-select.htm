@@ -1,0 +1,34 @@
+<div class="cbi-value-field">
+    <input type="text" class="cbi-input-text" name="<%=cbid%>" value="<%=self:cfgvalue(section)%>" placeholder="输入IP或MAC地址" />
+    <select class="cbi-input-select device-selector" onchange="document.getElementsByName('<%=cbid%>')[0].value=this.value">
+        <option value="">-- 选择设备 --</option>
+    </select>
+</div>
+
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    // 加载设备选项
+    fetch('<%=url("admin/services/kid-control/get_device_options")%>')
+        .then(response => response.json())
+        .then(devices => {
+            const selectors = document.querySelectorAll('.device-selector');
+            selectors.forEach(select => {
+                // 清空现有选项（除了第一个）
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+                
+                // 添加设备选项
+                devices.forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.value;
+                    option.textContent = device.text;
+                    select.appendChild(option);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('加载设备选项失败:', error);
+        });
+});
+</script>
