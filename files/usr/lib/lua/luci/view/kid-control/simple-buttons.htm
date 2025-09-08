@@ -1,0 +1,118 @@
+<script type="text/javascript">
+function findDeviceInput(button) {
+    // 向上查找最近的tr元素
+    var row = button;
+    while (row && row.tagName !== 'TR') {
+        row = row.parentElement;
+    }
+    
+    if (!row) {
+        console.error('Cannot find table row');
+        return null;
+    }
+    
+    // 在行内查找设备输入框和目标选择框
+    var deviceInput = row.querySelector('input[type="text"]');
+    var targetSelect = row.querySelector('select');
+    
+    if (!deviceInput || !targetSelect) {
+        console.error('Cannot find device input or target select');
+        return null;
+    }
+    
+    return {
+        device: deviceInput.value,
+        target: targetSelect.value,
+        deviceInput: deviceInput,
+        targetSelect: targetSelect
+    };
+}
+
+function blockDevice(button) {
+    var inputs = findDeviceInput(button);
+    if (!inputs) {
+        alert('<%:无法找到设备信息%>');
+        return;
+    }
+    
+    if (!inputs.device) {
+        alert('<%:请先输入设备IP或MAC地址%>');
+        inputs.deviceInput.focus();
+        return;
+    }
+    
+    fetch('<%=url("admin/services/kid-control/block_now")%>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'device=' + encodeURIComponent(inputs.device) + '&target=' + encodeURIComponent(inputs.target) + '&token=<%=token%>'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('<%:设备已封禁%>');
+        } else {
+            alert('<%:操作失败: %>' + (data.error || ''));
+        }
+    })
+    .catch(error => {
+        alert('<%:操作失败: %>' + error);
+    });
+}
+
+function unblockDevice(button) {
+    var inputs = findDeviceInput(button);
+    if (!inputs) {
+        // 如果没有特定设备，就解禁所有
+        unblockAll();
+        return;
+    }
+    
+    if (!inputs.device) {
+        alert('<%:请先输入设备IP或MAC地址%>');
+        inputs.deviceInput.focus();
+        return;
+    }
+    
+    fetch('<%=url("admin/services/kid-control/unblock_now")%>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'device=' + encodeURIComponent(inputs.device) + '&target=' + encodeURIComponent(inputs.target) + '&token=<%=token%>'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('<%:设备已解禁%>');
+        } else {
+            alert('<%:操作失败%>');
+        }
+    })
+    .catch(error => {
+        alert('<%:操作失败: %>' + error);
+    });
+}
+
+function unblockAll() {
+    fetch('<%=url("admin/services/kid-control/unblock_now")%>', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'token=<%=token%>'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('<%:已解禁所有设备%>');
+        } else {
+            alert('<%:操作失败%>');
+        }
+    })
+    .catch(error => {
+        alert('<%:操作失败: %>' + error);
+    });
+}
+</script>
