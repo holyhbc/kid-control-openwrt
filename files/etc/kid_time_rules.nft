@@ -1,0 +1,13 @@
+# 儿童上网控制时间规则
+# 自动生成，请勿手动修改
+
+table inet kidblock {
+    chain filter {
+        type filter hook forward priority 0; policy accept;
+    }
+}
+
+flush chain inet kidblock filter
+
+# 示例规则
+# add rule inet kidblock filter ip saddr 192.168.1.100 time hour >= "22" time hour < "07" day mon,tue,wed,thu,fri drop
