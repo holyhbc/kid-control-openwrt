@@ -1,0 +1,45 @@
+<%+header%>
+<div class="cbi-map">
+    <h2 name="content"><%:儿童上网控制 - 时间规则%></h2>
+    <div class="cbi-map-descr"><%:在此添加和管理上网时间规则。%></div>
+    
+    <fieldset class="cbi-section">
+        <legend><%:时间规则列表%></legend>
+        
+        <script type="text/javascript">
+            // 页面加载时初始化设备选项
+            document.addEventListener('DOMContentLoaded', function() {
+                // 为所有设备输入框添加占位符
+                const deviceInputs = document.querySelectorAll('input[name*="device"]');
+                deviceInputs.forEach(input => {
+                    input.placeholder = '<%:输入IP或MAC地址，如: 192.168.1.100 或 AA:BB:CC:DD:EE:FF%>';
+                });
+                
+                // 监听添加新行的按钮点击
+                const addButton = document.querySelector('.cbi-section-add');
+                if (addButton) {
+                    addButton.addEventListener('click', function() {
+                        setTimeout(function() {
+                            const newInputs = document.querySelectorAll('input[name*="device"]');
+                            newInputs.forEach(input => {
+                                if (!input.placeholder) {
+                                    input.placeholder = '<%:输入IP或MAC地址，如: 192.168.1.100 或 AA:BB:CC:DD:EE:FF%>';
+                                }
+                            });
+                        }, 100);
+                    });
+                }
+            });
+        </script>
+        
+        <%+cbi/tblsection%>
+    </fieldset>
+    
+    <div class="cbi-page-actions">
+        <form class="inline" action="<%=url('admin/services/kid-control/apply')%>" method="post">
+            <input type="hidden" name="token" value="<%=token%>" />
+            <input class="cbi-button cbi-button-apply" type="submit" value="<%:保存并应用%>" />
+        </form>
+    </div>
+</div>
+<%+footer%>
