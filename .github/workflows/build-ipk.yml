@@ -20,18 +20,42 @@ jobs:
 
     - name: Download and setup OpenWrt SDK
       run: |
-        # 使用更稳定的21.02.5版本SDK
+        # 使用稳定的SDK版本
         SDK_URL="https://downloads.openwrt.org/releases/21.02.5/targets/armvirt/64/openwrt-sdk-21.02.5-armvirt-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz"
         wget $SDK_URL -O sdk.tar.xz
-        mkdir openwrt-sdk
+        mkdir -p openwrt-sdk
         tar -xJf sdk.tar.xz -C openwrt-sdk --strip-components=1
         rm sdk.tar.xz
 
-    - name: Prepare package
+    - name: Prepare package files
       run: |
         cd openwrt-sdk
-        mkdir -p package/kid-control
-        cp -r ../Makefile ../files/* package/kid-control/
+        mkdir -p package/kid-control/files
+        # 复制Makefile
+        cp ../Makefile package/kid-control/
+        # 复制所有文件到正确的目录结构
+        mkdir -p package/kid-control/files/etc/config
+        mkdir -p package/kid-control/files/etc/init.d
+        mkdir -p package/kid-control/files/usr/bin
+        mkdir -p package/kid-control/files/usr/lib/lua/luci/controller
+        mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
+        mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
+        
+        # 复制文件
+        cp ../files/etc/config/kid-control package/kid-control/files/etc/config/
+        cp ../files/etc/init.d/kid-control package/kid-control/files/etc/init.d/
+        cp ../files/etc/kid_time_rules.nft package/kid-control/files/etc/
+        cp ../files/etc/kid_control.sh package/kid-control/files/etc/
+        
+        # 复制Luci文件
+        cp ../files/usr/lib/lua/luci/controller/kid-control.lua package/kid-control/files/usr/lib/lua/luci/controller/
+        cp ../files/usr/lib/lua/luci/model/cbi/kid-control/*.lua package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/
+        cp ../files/usr/lib/lua/luci/view/kid-control/*.htm package/kid-control/files/usr/lib/lua/luci/view/kid-control/
+        
+        # 创建符号链接文件
+        echo "#!/bin/sh" > package/kid-control/files/usr/bin/kid_control.sh
+        echo "exec /etc/kid_control.sh \"\$@\"" >> package/kid-control/files/usr/bin/kid_control.sh
+        chmod +x package/kid-control/files/usr/bin/kid_control.sh
 
     - name: Build package
       run: |
@@ -53,3 +77,9 @@ jobs:
       with:
         name: kid-control-ipk
         path: artifacts/*.ipk
+
+    - name: Create release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*.ipk
