@@ -3,45 +3,53 @@ name: Build OpenWrt IPK Package
 on:
   push:
     tags: ['v*']
-  release:
-    types: [created]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget tar xz-utils build-essential libssl-dev python3 git make
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+    - name: Download and setup OpenWrt SDK
+      run: |
+        # 使用更稳定的21.02.5版本SDK
+        SDK_URL="https://downloads.openwrt.org/releases/21.02.5/targets/armvirt/64/openwrt-sdk-21.02.5-armvirt-64_gcc-8.4.0_musl.Linux-x86_64.tar.xz"
+        wget $SDK_URL -O sdk.tar.xz
+        mkdir openwrt-sdk
+        tar -xJf sdk.tar.xz -C openwrt-sdk --strip-components=1
+        rm sdk.tar.xz
 
-    - name: Build using OpenWrt SDK
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        platforms: linux/arm64
-        tags: kid-control-builder:latest
-        outputs: type=local,dest=./artifacts
-        build-args: |
-          OPENWRT_SDK_URL=https://downloads.openwrt.org/snapshots/targets/armsr/armv8/openwrt-sdk-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+    - name: Prepare package
+      run: |
+        cd openwrt-sdk
+        mkdir -p package/kid-control
+        cp -r ../Makefile ../files/* package/kid-control/
 
-    - name: List artifacts
-      run: ls -la artifacts/
+    - name: Build package
+      run: |
+        cd openwrt-sdk
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        make defconfig
+        make package/kid-control/compile V=s
+
+    - name: Collect IPK files
+      run: |
+        mkdir -p artifacts
+        find openwrt-sdk/bin -name "kid-control*.ipk" -exec cp {} artifacts/ \;
+        echo "Built packages:"
+        ls -la artifacts/
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: kid-control-ipk
         path: artifacts/*.ipk
-
-    - name: Create release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: artifacts/*.ipk
