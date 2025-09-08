@@ -26,150 +26,141 @@ jobs:
         tar -xJf sdk.tar.xz -C openwrt-sdk --strip-components=1
         rm sdk.tar.xz
 
-    - name: Prepare package files
+    - name: Create config file
       run: |
         cd openwrt-sdk
-        mkdir -p package/kid-control
-        
-        # 复制Makefile
-        cp ../Makefile package/kid-control/
-        
-        # 创建文件目录结构
         mkdir -p package/kid-control/files/etc/config
+        # 创建配置文件 - 使用echo命令避免多行字符串问题
+        echo "config kid_control 'global'" > package/kid-control/files/etc/config/kid-control
+        echo "    option enabled '0'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option debug '0'" >> package/kid-control/files/etc/config/kid-control
+        echo "" >> package/kid-control/files/etc/config/kid-control
+        echo "config time_rule 'rule1'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option enabled '1'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option name 'Weekday Evening'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option days 'mon,tue,wed,thu,fri'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option start_time '18:00'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option end_time '20:00'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option devices 'mac:AA:BB:CC:DD:EE:FF'" >> package/kid-control/files/etc/config/kid-control
+        echo "" >> package/kid-control/files/etc/config/kid-control
+        echo "config blocked_device 'device1'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option mac 'AA:BB:CC:DD:EE:FF'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option name 'Kids Tablet'" >> package/kid-control/files/etc/config/kid-control
+        echo "    option permanently_blocked '0'" >> package/kid-control/files/etc/config/kid-control
+
+    - name: Prepare init script
+      run: |
+        cd openwrt-sdk
         mkdir -p package/kid-control/files/etc/init.d
+        # 创建init脚本 - 使用echo命令
+        echo "#!/bin/sh /etc/rc.common" > package/kid-control/files/etc/init.d/kid-control
+        echo "" >> package/kid-control/files/etc/init.d/kid-control
+        echo "START=99" >> package/kid-control/files/etc/init.d/kid-control
+        echo "STOP=10" >> package/kid-control/files/etc/init.d/kid-control
+        echo "" >> package/kid-control/files/etc/init.d/kid-control
+        echo "USE_PROCD=1" >> package/kid-control/files/etc/init.d/kid-control
+        echo "" >> package/kid-control/files/etc/init.d/kid-control
+        echo "start_service() {" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    procd_open_instance" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    procd_set_param command /etc/kid_control.sh start" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    procd_set_param respawn" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    procd_close_instance" >> package/kid-control/files/etc/init.d/kid-control
+        echo "}" >> package/kid-control/files/etc/init.d/kid-control
+        echo "" >> package/kid-control/files/etc/init.d/kid-control
+        echo "stop_service() {" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    /etc/kid_control.sh stop" >> package/kid-control/files/etc/init.d/kid-control
+        echo "}" >> package/kid-control/files/etc/init.d/kid-control
+        echo "" >> package/kid-control/files/etc/init.d/kid-control
+        echo "restart() {" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    stop" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    sleep 2" >> package/kid-control/files/etc/init.d/kid-control
+        echo "    start" >> package/kid-control/files/etc/init.d/kid-control
+        echo "}" >> package/kid-control/files/etc/init.d/kid-control
+        chmod +x package/kid-control/files/etc/init.d/kid-control
+
+    - name: Prepare control script
+      run: |
+        cd openwrt-sdk
+        mkdir -p package/kid-control/files/etc
+        # 创建控制脚本
+        echo "#!/bin/sh" > package/kid-control/files/etc/kid_control.sh
+        echo "" >> package/kid-control/files/etc/kid_control.sh
+        echo "case \"\$1\" in" >> package/kid-control/files/etc/kid_control.sh
+        echo "    start)" >> package/kid-control/files/etc/kid_control.sh
+        echo "        echo \"Starting Kid Control...\"" >> package/kid-control/files/etc/kid_control.sh
+        echo "        ;;" >> package/kid-control/files/etc/kid_control.sh
+        echo "    stop)" >> package/kid-control/files/etc/kid_control.sh
+        echo "        echo \"Stopping Kid Control...\"" >> package/kid-control/files/etc/kid_control.sh
+        echo "        ;;" >> package/kid-control/files/etc/kid_control.sh
+        echo "    restart)" >> package/kid-control/files/etc/kid_control.sh
+        echo "        \$0 stop" >> package/kid-control/files/etc/kid_control.sh
+        echo "        sleep 2" >> package/kid-control/files/etc/kid_control.sh
+        echo "        \$0 start" >> package/kid-control/files/etc/kid_control.sh
+        echo "        ;;" >> package/kid-control/files/etc/kid_control.sh
+        echo "    status)" >> package/kid-control/files/etc/kid_control.sh
+        echo "        echo \"Kid Control status check...\"" >> package/kid-control/files/etc/kid_control.sh
+        echo "        ;;" >> package/kid-control/files/etc/kid_control.sh
+        echo "    *)" >> package/kid-control/files/etc/kid_control.sh
+        echo "        echo \"Usage: \$0 {start|stop|restart|status}\"" >> package/kid-control/files/etc/kid_control.sh
+        echo "        exit 1" >> package/kid-control/files/etc/kid_control.sh
+        echo "        ;;" >> package/kid-control/files/etc/kid_control.sh
+        echo "esac" >> package/kid-control/files/etc/kid_control.sh
+        echo "exit 0" >> package/kid-control/files/etc/kid_control.sh
+        chmod +x package/kid-control/files/etc/kid_control.sh
+
+    - name: Prepare other files
+      run: |
+        cd openwrt-sdk
+        # 创建其他必要文件
+        mkdir -p package/kid-control/files/etc
+        touch package/kid-control/files/etc/kid_time_rules.nft
+        
+        # 创建Luci文件目录结构
         mkdir -p package/kid-control/files/usr/lib/lua/luci/controller
         mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
         mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
         
-        # 复制配置文件
+        # 创建默认Luci文件
+        touch package/kid-control/files/usr/lib/lua/luci/controller/kid-control.lua
+        ##touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/overview.lua
+        touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/time-rules.lua
+        touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/block-list.lua
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/overview.htm
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/time-rules.htm
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/device-select.htm
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/block-btn.htm
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/unblock-btn.htm
+        touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/simple-buttons.htm
+
+    - name: Copy Makefile and existing files
+      run: |
+        cd openwrt-sdk
+        # 复制Makefile
+        cp ../Makefile package/kid-control/
+        
+        # 复制已存在的文件（如果存在）
         if [ -f ../files/etc/config/kid-control ]; then
             cp ../files/etc/config/kid-control package/kid-control/files/etc/config/
-        else
-            # 创建默认配置文件
-            cat > package/kid-control/files/etc/config/kid-control << 'EOF'
-config kid_control 'global'
-    option enabled '0'
-    option debug '0'
-
-config time_rule 'rule1'
-    option enabled '1'
-    option name 'Weekday Evening'
-    option days 'mon,tue,wed,thu,fri'
-    option start_time '18:00'
-    option end_time '20:00'
-    option devices 'mac:AA:BB:CC:DD:EE:FF'
-
-config blocked_device 'device1'
-    option mac 'AA:BB:CC:DD:EE:FF'
-    option name 'Kids Tablet'
-    option permanently_blocked '0'
-EOF
         fi
-        
-        # 复制init脚本
         if [ -f ../files/etc/init.d/kid-control ]; then
             cp ../files/etc/init.d/kid-control package/kid-control/files/etc/init.d/
             chmod +x package/kid-control/files/etc/init.d/kid-control
-        else
-            # 创建默认init脚本
-            cat > package/kid-control/files/etc/init.d/kid-control << 'EOF'
-#!/bin/sh /etc/rc.common
-
-START=99
-STOP=10
-
-USE_PROCD=1
-
-start_service() {
-    procd_open_instance
-    procd_set_param command /etc/kid_control.sh start
-    procd_set_param respawn
-    procd_close_instance
-}
-
-stop_service() {
-    /etc/kid_control.sh stop
-}
-
-restart() {
-    stop
-    sleep 2
-    start
-}
-EOF
-            chmod +x package/kid-control/files/etc/init.d/kid-control
         fi
-        
-        # 处理其他文件
-        if [ -f ../files/etc/kid_time_rules.nft ]; then
-            cp ../files/etc/kid_time_rules.nft package/kid-control/files/etc/
-        else
-            touch package/kid-control/files/etc/kid_time_rules.nft
-        fi
-        
         if [ -f ../files/etc/kid_control.sh ]; then
             cp ../files/etc/kid_control.sh package/kid-control/files/etc/
             chmod +x package/kid-control/files/etc/kid_control.sh
-        else
-            # 创建默认控制脚本
-            cat > package/kid-control/files/etc/kid_control.sh << 'EOF'
-#!/bin/sh
-
-case "$1" in
-    start)
-        echo "Starting Kid Control..."
-        ;;
-    stop)
-        echo "Stopping Kid Control..."
-        ;;
-    restart)
-        $0 stop
-        sleep 2
-        $0 start
-        ;;
-    status)
-        echo "Kid Control status check..."
-        ;;
-    *)
-        echo "Usage: $0 {start|stop|restart|status}"
-        exit 1
-        ;;
-esac
-exit 0
-EOF
-            chmod +x package/kid-control/files/etc/kid_control.sh
         fi
-        
-        # 复制Luci控制器文件
+        if [ -f ../files/etc/kid_time_rules.nft ]; then
+            cp ../files/etc/kid_time_rules.nft package/kid-control/files/etc/
+        fi
         if [ -f ../files/usr/lib/lua/luci/controller/kid-control.lua ]; then
             cp ../files/usr/lib/lua/luci/controller/kid-control.lua package/kid-control/files/usr/lib/lua/luci/controller/
-        else
-            touch package/kid-control/files/usr/lib/lua/luci/controller/kid-control.lua
         fi
-        
-        # 复制模型文件
         if [ -d ../files/usr/lib/lua/luci/model/cbi/kid-control ]; then
-            mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
-            cp ../files/usr/lib/lua/luci/model/cbi/kid-control/*.lua package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/ 2>/dev/null || true
-        else
-            mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
-            ##touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/overview.lua
-            touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/time-rules.lua
-            touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/block-list.lua
+            cp -r ../files/usr/lib/lua/luci/model/cbi/kid-control/*.lua package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/ || true
         fi
-        
-        # 复制视图文件
         if [ -d ../files/usr/lib/lua/luci/view/kid-control ]; then
-            mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
-            cp ../files/usr/lib/lua/luci/view/kid-control/*.htm package/kid-control/files/usr/lib/lua/luci/view/kid-control/ 2>/dev/null || true
-        else
-            mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/overview.htm
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/time-rules.htm
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/device-select.htm
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/block-btn.htm
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/unblock-btn.htm
-            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/simple-buttons.htm
+            cp -r ../files/usr/lib/lua/luci/view/kid-control/*.htm package/kid-control/files/usr/lib/lua/luci/view/kid-control/ || true
         fi
 
     - name: Build package
@@ -178,7 +169,7 @@ EOF
         ./scripts/feeds update -a
         ./scripts/feeds install -a
         make defconfig
-        make package/kid-control/compile V=s
+        make package/kid-control/compile
 
     - name: Collect IPK files
       run: |
