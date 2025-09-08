@@ -47,12 +47,12 @@ define Package/kid-control/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi/kid-control
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/kid-control/overview.lua $(1)/usr/lib/lua/luci/model/cbi/kid-control/
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/kid-control/time-rules.lua $(1)/usr/lib/lua/luci/model/cbi/kid-control/
-	$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/kid-control/block-list.lua $(1)/usr/lib/lua/luci/model/cbi/kid-control/
+	##$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/kid-control/block-list.lua $(1)/usr/lib/lua/luci/model/cbi/kid-control/
 	
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/view/kid-control
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/overview.htm $(1)/usr/lib/lua/luci/view/kid-control/
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/time-rules.htm $(1)/usr/lib/lua/luci/view/kid-control/
-	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/block-list.htm $(1)/usr/lib/lua/luci/view/kid-control/
+	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/device-select.htm $(1)/usr/lib/lua/luci/view/kid-control/
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/block-btn.htm $(1)/usr/lib/lua/luci/view/kid-control/
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/unblock-btn.htm $(1)/usr/lib/lua/luci/view/kid-control/
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/view/kid-control/simple-buttons.htm $(1)/usr/lib/lua/luci/view/kid-control/
