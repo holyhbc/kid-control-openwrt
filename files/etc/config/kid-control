@@ -1,0 +1,38 @@
+config global 'settings'
+	option enabled '1'
+
+config time_rules 'rule1'
+	option enabled '1'
+	option name '测试hbc'
+	option device '192.168.6.119'
+	option target 'ip'
+	option start_time '00:00'
+	option end_time '23:00'
+	option mon '1'
+	option tue '1'
+	option wed '1'
+	option thu '1'
+	option fri '1'
+	option sat '1'
+
+config block_list 'block1'
+	option device '192.168.6.119'
+	option target 'ip'
+
+config time_rules
+	option enabled '1'
+	option target 'mac'
+	option mon '1'
+	option tue '1'
+	option wed '1'
+	option thu '1'
+	option fri '1'
+	option sat '1'
+	option name 'iPhonemac'
+	option device 'F4:06:16:32:EA:D8'
+	option start_time '00:00'
+	option end_time '23:00'
+
+config block_list
+	option target 'mac'
+	option device 'F4:06:16:32:EA:D8'
