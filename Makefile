@@ -13,9 +13,7 @@ define Package/kid-control
   SECTION:=net
   CATEGORY:=Network
   TITLE:=Kid Internet Control
-  # 原来的（需要Luci）
-  #DEPENDS:=+nftables +lua +luci +luci-base
-
+  # 原来的（需要Luci）#DEPENDS:=+nftables +lua +luci +luci-base
   # 修改为（不需要Luci，只需要基础Lua）
   DEPENDS:=+nftables +lua
   PKGARCH:=all
