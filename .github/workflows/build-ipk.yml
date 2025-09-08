@@ -184,17 +184,16 @@ jobs:
         name: kid-control-ipk
         path: artifacts/*.ipk
 
-    - name: Create release
+    - name: Create Release with IPK
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: artifacts/*.ipk
-
-
-    - name: Upload to Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: artifacts/*.ipk
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: |
+          Kid Control OpenWrt Package
+          Version: ${{ github.ref_name }}
+          Build date: ${{ github.event.head_commit.timestamp }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
