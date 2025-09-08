@@ -31,7 +31,7 @@ jobs:
         cd openwrt-sdk
         mkdir -p package/kid-control
         
-        # 复制修正后的Makefile（确保使用制表符）
+        # 复制Makefile
         cp ../Makefile package/kid-control/
         
         # 创建文件目录结构
@@ -41,16 +41,66 @@ jobs:
         mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
         mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
         
-        # 复制文件
+        # 复制配置文件
         if [ -f ../files/etc/config/kid-control ]; then
             cp ../files/etc/config/kid-control package/kid-control/files/etc/config/
+        else
+            # 创建默认配置文件
+            cat > package/kid-control/files/etc/config/kid-control << 'EOF'
+config kid_control 'global'
+    option enabled '0'
+    option debug '0'
+
+config time_rule 'rule1'
+    option enabled '1'
+    option name 'Weekday Evening'
+    option days 'mon,tue,wed,thu,fri'
+    option start_time '18:00'
+    option end_time '20:00'
+    option devices 'mac:AA:BB:CC:DD:EE:FF'
+
+config blocked_device 'device1'
+    option mac 'AA:BB:CC:DD:EE:FF'
+    option name 'Kids Tablet'
+    option permanently_blocked '0'
+EOF
         fi
         
+        # 复制init脚本
         if [ -f ../files/etc/init.d/kid-control ]; then
             cp ../files/etc/init.d/kid-control package/kid-control/files/etc/init.d/
             chmod +x package/kid-control/files/etc/init.d/kid-control
+        else
+            # 创建默认init脚本
+            cat > package/kid-control/files/etc/init.d/kid-control << 'EOF'
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+USE_PROCD=1
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /etc/kid_control.sh start
+    procd_set_param respawn
+    procd_close_instance
+}
+
+stop_service() {
+    /etc/kid_control.sh stop
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+EOF
+            chmod +x package/kid-control/files/etc/init.d/kid-control
         fi
         
+        # 处理其他文件
         if [ -f ../files/etc/kid_time_rules.nft ]; then
             cp ../files/etc/kid_time_rules.nft package/kid-control/files/etc/
         else
@@ -61,7 +111,7 @@ jobs:
             cp ../files/etc/kid_control.sh package/kid-control/files/etc/
             chmod +x package/kid-control/files/etc/kid_control.sh
         else
-            # 创建默认脚本
+            # 创建默认控制脚本
             cat > package/kid-control/files/etc/kid_control.sh << 'EOF'
 #!/bin/sh
 
@@ -90,21 +140,36 @@ EOF
             chmod +x package/kid-control/files/etc/kid_control.sh
         fi
         
-        # 复制Luci文件
+        # 复制Luci控制器文件
         if [ -f ../files/usr/lib/lua/luci/controller/kid-control.lua ]; then
             cp ../files/usr/lib/lua/luci/controller/kid-control.lua package/kid-control/files/usr/lib/lua/luci/controller/
+        else
+            touch package/kid-control/files/usr/lib/lua/luci/controller/kid-control.lua
         fi
         
         # 复制模型文件
         if [ -d ../files/usr/lib/lua/luci/model/cbi/kid-control ]; then
             mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
             cp ../files/usr/lib/lua/luci/model/cbi/kid-control/*.lua package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/ 2>/dev/null || true
+        else
+            mkdir -p package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control
+            ##touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/overview.lua
+            touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/time-rules.lua
+            touch package/kid-control/files/usr/lib/lua/luci/model/cbi/kid-control/block-list.lua
         fi
         
         # 复制视图文件
         if [ -d ../files/usr/lib/lua/luci/view/kid-control ]; then
             mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
             cp ../files/usr/lib/lua/luci/view/kid-control/*.htm package/kid-control/files/usr/lib/lua/luci/view/kid-control/ 2>/dev/null || true
+        else
+            mkdir -p package/kid-control/files/usr/lib/lua/luci/view/kid-control
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/overview.htm
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/time-rules.htm
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/device-select.htm
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/block-btn.htm
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/unblock-btn.htm
+            touch package/kid-control/files/usr/lib/lua/luci/view/kid-control/simple-buttons.htm
         fi
 
     - name: Build package
