@@ -10,51 +10,34 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: openwrtorg/sdk:latest
-
-    strategy:
-      matrix:
-        arch: [aarch64_cortex-a53]
-        include:
-          - arch: aarch64_cortex-a53
-            target: armsr/armv8
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build using OpenWrt SDK
+      uses: docker/build-push-action@v5
       with:
-        submodules: recursive
+        context: .
+        platforms: linux/arm64
+        tags: kid-control-builder:latest
+        outputs: type=local,dest=./artifacts
+        build-args: |
+          OPENWRT_SDK_URL=https://downloads.openwrt.org/snapshots/targets/armsr/armv8/openwrt-sdk-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
 
-    - name: Setup OpenWrt SDK
-      run: |
-        SDK_URL="https://downloads.openwrt.org/snapshots/targets/$(echo ${{ matrix.target }})/openwrt-sdk-$(echo ${{ matrix.target }})_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
-        echo "Downloading SDK: $SDK_URL"
-        wget $SDK_URL -O sdk.tar.xz
-        tar -xf sdk.tar.xz --strip-components=1 -C /openwrt
-        rm sdk.tar.xz
-
-    - name: Prepare package directory
-      run: |
-        mkdir -p /openwrt/package/kid-control
-        cp -r Makefile files /openwrt/package/kid-control/
-
-    - name: Build package
-      run: |
-        cd /openwrt
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
-        make defconfig
-        make package/kid-control/compile V=s
-
-    - name: Collect artifacts
-      run: |
-        mkdir -p artifacts
-        find /openwrt/bin -name "kid-control*.ipk" -exec cp {} artifacts/ \;
+    - name: List artifacts
+      run: ls -la artifacts/
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: kid-control-ipk-${{ matrix.arch }}
+        name: kid-control-ipk
         path: artifacts/*.ipk
 
     - name: Create release
