@@ -1,0 +1,64 @@
+name: Build OpenWrt IPK Package
+
+on:
+  push:
+    tags: ['v*']
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: openwrtorg/sdk:latest
+
+    strategy:
+      matrix:
+        arch: [aarch64_cortex-a53]
+        include:
+          - arch: aarch64_cortex-a53
+            target: armsr/armv8
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup OpenWrt SDK
+      run: |
+        SDK_URL="https://downloads.openwrt.org/snapshots/targets/$(echo ${{ matrix.target }})/openwrt-sdk-$(echo ${{ matrix.target }})_gcc-12.3.0_musl.Linux-x86_64.tar.xz"
+        echo "Downloading SDK: $SDK_URL"
+        wget $SDK_URL -O sdk.tar.xz
+        tar -xf sdk.tar.xz --strip-components=1 -C /openwrt
+        rm sdk.tar.xz
+
+    - name: Prepare package directory
+      run: |
+        mkdir -p /openwrt/package/kid-control
+        cp -r Makefile files /openwrt/package/kid-control/
+
+    - name: Build package
+      run: |
+        cd /openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+        make defconfig
+        make package/kid-control/compile V=s
+
+    - name: Collect artifacts
+      run: |
+        mkdir -p artifacts
+        find /openwrt/bin -name "kid-control*.ipk" -exec cp {} artifacts/ \;
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: kid-control-ipk-${{ matrix.arch }}
+        path: artifacts/*.ipk
+
+    - name: Create release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: artifacts/*.ipk
