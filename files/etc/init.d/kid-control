@@ -1,0 +1,38 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+NAME="kid-control"
+SCRIPT="/etc/kid_control.sh"
+
+start() {
+    echo "Starting Kid Control"
+    
+    # 初始化nft表
+    nft add table inet kidblock 2>/dev/null
+    nft add chain inet kidblock filter { type filter hook forward priority 0\; policy accept\; } 2>/dev/null
+    nft flush chain inet kidblock filter 2>/dev/null
+    
+    # 应用时间规则
+    if [ -f "/etc/kid_time_rules.nft" ]; then
+        nft -f /etc/kid_time_rules.nft
+        echo "Applied time rules"
+    fi
+    
+    echo "Kid control started"
+}
+
+stop() {
+    echo "Stopping Kid Control"
+    # 清空规则
+    nft delete table inet kidblock 2>/dev/null
+    nft delete table inet kidnow 2>/dev/null
+    echo "Kid control stopped"
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
